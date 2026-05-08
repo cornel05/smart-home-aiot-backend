@@ -1,0 +1,31 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: smarthome_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: smarthome
+      POSTGRES_PASSWORD: smarthome
+      POSTGRES_DB: smarthome
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./database/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: smarthome_mqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9002:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+
+volumes:
+  timescaledb_data:
+  mosquitto_data:
+  mosquitto_log:

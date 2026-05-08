@@ -1,0 +1,32 @@
+[project]
+name = "dadn"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.115.0",
+    "uvicorn[standard]==0.30.6",
+    "pydantic==2.9.2",
+    "pydantic-settings==2.5.2",
+    "sqlalchemy[asyncio]==2.0.35",
+    "asyncpg==0.29.0",
+    "psycopg2-binary==2.9.9",
+    "paho-mqtt==2.1.0",
+    "numpy==1.26.4",
+    "pandas==2.2.3",
+    "torch==2.4.1",
+    "scikit-learn==1.5.2",
+    "python-dotenv==1.0.1",
+    "websockets==13.1",
+    "httpx==0.27.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+    "pytest-cov",
+    "requests",
+]
