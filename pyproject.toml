@@ -29,4 +29,15 @@ dev = [
     "httpx",
     "pytest-cov",
     "requests",
+    "aiosqlite>=0.19.0",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["api", "services"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true
