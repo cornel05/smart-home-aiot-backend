@@ -2,6 +2,11 @@ __pycache__/
 .env
 .venv
 *.pyc
+.coverage
+.agent/
+.codex/
+.claude/
+frontend/graphify-out/
 
 # keep graph outputs, skip heavy/local-only files
 graphify-out/cache/            # optional: commit for shared extraction speed, skip to keep repo small
