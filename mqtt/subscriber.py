@@ -23,6 +23,8 @@ def _feed_topic(feed_key: str) -> str:
     return f"{settings.AIO_USERNAME}/feeds/{feed_key}"
 
 
+_node_buffer: dict[int, dict] = {}
+
 _FEED_TO_FIELD = {
     _feed_topic(settings.MQTT_TOPIC_TEMP): "temperature",
     _feed_topic(settings.MQTT_TOPIC_HUM): "humidity",
@@ -61,23 +63,27 @@ async def _persist(payload: dict, events: list[dict]):
     from database.models import SensorTelemetry, SystemEvent
     from core.config import settings as cfg
 
+    node_id = payload.get("node_id", cfg.NODE_ID)
+
+    if node_id not in _node_buffer:
+        _node_buffer[node_id] = {}
+    _node_buffer[node_id].update(
+        {k: v for k, v in payload.items() if k != "node_id" and v is not None}
+    )
+    buf = _node_buffer[node_id]
+
     async with AsyncSessionLocal() as session:
         row = SensorTelemetry(
             timestamp=datetime.utcnow(),
-            node_id=payload.get("node_id", cfg.NODE_ID),
-            temperature=payload.get("temperature"),
-            humidity=payload.get("humidity"),
-            light_intensity=payload.get("light_intensity"),
+            node_id=node_id,
+            temperature=buf.get("temperature"),
+            humidity=buf.get("humidity"),
+            light_intensity=buf.get("light_intensity"),
         )
-        if any(
-            value is not None
-            for value in (row.temperature, row.humidity, row.light_intensity)
-        ):
+        if any(v is not None for v in (row.temperature, row.humidity, row.light_intensity)):
             session.add(row)
-
         for ev in events:
             session.add(SystemEvent(**ev))
-
         await session.commit()
 
 

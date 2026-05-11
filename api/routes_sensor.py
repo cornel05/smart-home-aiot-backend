@@ -17,19 +17,23 @@ async def get_latest(
     result = await db.execute(
         select(SensorTelemetry)
         .order_by(SensorTelemetry.timestamp.desc())
-        .limit(limit)
+        .limit(max(limit * 4, 20))
     )
     rows = result.scalars().all()
-    return [
-        {
-            "timestamp": r.timestamp,
-            "node_id": r.node_id,
-            "temperature": r.temperature,
-            "humidity": r.humidity,
-            "light_intensity": r.light_intensity,
-        }
-        for r in rows
-    ]
+    if not rows:
+        return []
+
+    temperature = next((r.temperature for r in rows if r.temperature is not None), None)
+    humidity = next((r.humidity for r in rows if r.humidity is not None), None)
+    light_intensity = next((r.light_intensity for r in rows if r.light_intensity is not None), None)
+
+    return [{
+        "timestamp": rows[0].timestamp,
+        "node_id": rows[0].node_id,
+        "temperature": temperature,
+        "humidity": humidity,
+        "light_intensity": light_intensity,
+    }]
 
 
 @router.get("/history")

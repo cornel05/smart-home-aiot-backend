@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     MQTT_TOPIC_LIGHT: str = "smarthome.light"
     MQTT_TOPIC_IR: str = "smarthome.ir-motion"
     MQTT_TOPIC_CMD: str = "smarthome/commands"
+    MQTT_TOPIC_SENSOR: str = "smarthome/sensors"
+    GAS_ALERT_THRESHOLD: float = 300.0
     NODE_ID: int = 1
     TEMP_FAN_THRESHOLD: float = 26.0
     LIGHT_ON_THRESHOLD: float = 200.0
