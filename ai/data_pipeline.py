@@ -11,7 +11,7 @@ try:
 except ImportError:
     HAS_TORCH = False
 
-FEATURES = ["temperature", "humidity", "light_intensity", "gas_ppm"]
+FEATURES = ["temperature", "humidity", "light_intensity"]
 WINDOW_SIZE = 60
 
 
@@ -37,7 +37,6 @@ async def extract(db_session, hours: int = 24) -> pd.DataFrame:
                 "temperature": r.temperature,
                 "humidity": r.humidity,
                 "light_intensity": r.light_intensity,
-                "gas_ppm": r.gas_ppm,
             }
             for r in rows
         ]
@@ -70,7 +69,7 @@ def build_windows(df: pd.DataFrame, window: int = WINDOW_SIZE) -> np.ndarray:
 
 if HAS_TORCH:
     class LSTMModel(nn.Module):
-        def __init__(self, input_size: int = 4, hidden_size: int = 64, num_layers: int = 2):
+        def __init__(self, input_size: int = 3, hidden_size: int = 64, num_layers: int = 2):
             super().__init__()
             self.lstm = nn.LSTM(
                 input_size, hidden_size, num_layers, batch_first=True, dropout=0.2

@@ -1,4 +1,3 @@
-import json
 import logging
 import asyncio
 from datetime import datetime
@@ -13,50 +12,42 @@ _loop: asyncio.AbstractEventLoop | None = None
 
 def _on_connect(client, userdata, flags, reason_code, properties):
     if reason_code == 0:
-        client.subscribe(settings.MQTT_TOPIC_SENSOR)
-        logger.info("MQTT subscriber connected, subscribed to %s", settings.MQTT_TOPIC_SENSOR)
+        for topic in _FEED_TO_FIELD:
+            client.subscribe(topic)
+        logger.info("MQTT subscriber connected to Adafruit IO feeds")
     else:
         logger.error("MQTT connect failed: %s", reason_code)
 
 
-_SENSOR_FIELDS = {"temperature", "humidity", "light_intensity", "gas_ppm", "door_open"}
-
-# Fields that are mutually exclusive per physical sensor type.
-_EXCLUSIVE_GROUPS = [
-    {"temperature", "humidity"},   # DHT11
-    {"gas_ppm"},                   # MQ-2
-    {"door_open"},                 # Reed
-    {"light_intensity"},           # BH1750
-]
+def _feed_topic(feed_key: str) -> str:
+    return f"{settings.AIO_USERNAME}/feeds/{feed_key}"
 
 
-def _validate_payload(payload: dict) -> bool:
-    if "node_id" not in payload:
-        logger.warning("Dropping payload missing node_id: %s", payload)
-        return False
-    present = _SENSOR_FIELDS & payload.keys()
-    if not present:
-        logger.warning("Dropping payload with no recognized sensor fields: %s", payload)
-        return False
-    # Warn when fields from physically separate sensors coexist in one message.
-    groups_present = [g for g in _EXCLUSIVE_GROUPS if g & present]
-    if len(groups_present) > 1:
-        logger.warning(
-            "Payload contains fields from %d sensor types — possible schema violation: %s",
-            len(groups_present),
-            payload,
-        )
-    return True
+_FEED_TO_FIELD = {
+    _feed_topic(settings.MQTT_TOPIC_TEMP): "temperature",
+    _feed_topic(settings.MQTT_TOPIC_HUM): "humidity",
+    _feed_topic(settings.MQTT_TOPIC_LIGHT): "light_intensity",
+    _feed_topic(settings.MQTT_TOPIC_IR): "ir",
+}
+
+
+def _payload_from_feed(topic: str, raw_value: bytes) -> dict | None:
+    field = _FEED_TO_FIELD.get(topic)
+    if field is None:
+        logger.warning("Dropping message from unexpected topic %s", topic)
+        return None
+
+    value = float(raw_value.decode())
+    return {"node_id": settings.NODE_ID, field: value}
 
 
 def _on_message(client, userdata, msg):
     try:
-        payload = json.loads(msg.payload.decode())
-        logger.info("Received: %s", payload)
-
-        if not _validate_payload(payload):
+        payload = _payload_from_feed(msg.topic, msg.payload)
+        if payload is None:
             return
 
+        logger.info("Received %s: %s", msg.topic, payload)
         events = evaluate(payload)
 
         if _loop and not _loop.is_closed():
@@ -77,10 +68,12 @@ async def _persist(payload: dict, events: list[dict]):
             temperature=payload.get("temperature"),
             humidity=payload.get("humidity"),
             light_intensity=payload.get("light_intensity"),
-            gas_ppm=payload.get("gas_ppm"),
-            door_open=payload.get("door_open"),
         )
-        session.add(row)
+        if any(
+            value is not None
+            for value in (row.temperature, row.humidity, row.light_intensity)
+        ):
+            session.add(row)
 
         for ev in events:
             session.add(SystemEvent(**ev))

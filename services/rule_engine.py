@@ -7,8 +7,8 @@ def evaluate(payload: dict, db_session=None) -> list[dict]:
     events = []
 
     temp = payload.get("temperature")
-    gas_ppm = payload.get("gas_ppm")
-    door_open = payload.get("door_open")
+    ir = payload.get("ir")
+    light = payload.get("light_intensity")
     node_id = payload.get("node_id", settings.NODE_ID)
 
     if temp is not None and temp > settings.TEMP_FAN_THRESHOLD:
@@ -23,25 +23,25 @@ def evaluate(payload: dict, db_session=None) -> list[dict]:
             "timestamp": datetime.utcnow(),
         })
 
-    if gas_ppm is not None and gas_ppm > settings.GAS_ALERT_THRESHOLD:
+    if light is not None and light < settings.LIGHT_ON_THRESHOLD:
         from mqtt.publisher import publish_command
-        publish_command("alarm", "trigger", value=gas_ppm)
+        publish_command("light", "on", value=light)
         events.append({
             "node_id": node_id,
-            "event_type": "gas_alert",
+            "event_type": "light_activated",
             "trigger_source": "automatic",
-            "target_device": "alarm",
-            "value": gas_ppm,
+            "target_device": "light",
+            "value": light,
             "timestamp": datetime.utcnow(),
         })
 
-    if door_open is True:
+    if ir is not None and ir > 0:
         events.append({
             "node_id": node_id,
-            "event_type": "door_opened",
+            "event_type": "ir_motion",
             "trigger_source": "automatic",
-            "target_device": None,
-            "value": None,
+            "target_device": "ir_sensor",
+            "value": ir,
             "timestamp": datetime.utcnow(),
         })
 

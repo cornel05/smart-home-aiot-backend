@@ -22,14 +22,16 @@ export function useSensorData(pollInterval = 5000) {
     try {
       const { data } = await axios.get(`${API_BASE}/api/sensors/history?minutes=60`);
       setHistory(data);
-    } catch (e) {
+    } catch {
       // silently fail on history
     }
   }, []);
 
   useEffect(() => {
-    fetchLatest();
-    fetchHistory();
+    queueMicrotask(() => {
+      fetchLatest();
+      fetchHistory();
+    });
     const id = setInterval(() => {
       fetchLatest();
       fetchHistory();

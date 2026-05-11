@@ -27,8 +27,6 @@ async def get_latest(
             "temperature": r.temperature,
             "humidity": r.humidity,
             "light_intensity": r.light_intensity,
-            "gas_ppm": r.gas_ppm,
-            "door_open": r.door_open,
         }
         for r in rows
     ]
@@ -55,8 +53,6 @@ async def get_history(
             "temperature": r.temperature,
             "humidity": r.humidity,
             "light_intensity": r.light_intensity,
-            "gas_ppm": r.gas_ppm,
-            "door_open": r.door_open,
         }
         for r in rows
     ]

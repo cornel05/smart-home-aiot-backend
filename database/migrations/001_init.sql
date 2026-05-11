@@ -6,9 +6,9 @@ CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
 -- Table 1: Node Metadata
 CREATE TABLE IF NOT EXISTS node_metadata (
     node_id          SERIAL PRIMARY KEY,
-    location         VARCHAR(100),
-    installation_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    status           VARCHAR(50) NOT NULL DEFAULT 'active'
+    location         VARCHAR(255),
+    installation_date TIMESTAMPTZ,
+    status           VARCHAR(50)
 );
 
 -- Seed default node
@@ -18,13 +18,11 @@ ON CONFLICT DO NOTHING;
 
 -- Table 2: Sensor Telemetry (hypertable)
 CREATE TABLE IF NOT EXISTS sensor_telemetry (
-    "timestamp"     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "timestamp"     TIMESTAMPTZ NOT NULL,
     node_id         INTEGER NOT NULL REFERENCES node_metadata(node_id),
     temperature     DOUBLE PRECISION,
     humidity        DOUBLE PRECISION,
     light_intensity DOUBLE PRECISION,
-    gas_ppm         DOUBLE PRECISION,
-    door_open       BOOLEAN,
     PRIMARY KEY ("timestamp", node_id)
 );
 
@@ -45,13 +43,19 @@ SELECT add_compression_policy('sensor_telemetry', INTERVAL '7 days', if_not_exis
 -- Table 3: System Events
 CREATE TABLE IF NOT EXISTS system_events (
     event_id       SERIAL PRIMARY KEY,
-    "timestamp"    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    node_id        INTEGER REFERENCES node_metadata(node_id),
+    "timestamp"    TIMESTAMPTZ NOT NULL,
+    node_id        INTEGER NOT NULL REFERENCES node_metadata(node_id),
     event_type     VARCHAR(100) NOT NULL,
-    trigger_source VARCHAR(50) NOT NULL DEFAULT 'automatic',
-    target_device  VARCHAR(100),
+    trigger_source VARCHAR(50) NOT NULL,
+    target_device  VARCHAR(100) NOT NULL,
     value          DOUBLE PRECISION
 );
 
-CREATE INDEX IF NOT EXISTS idx_events_timestamp ON system_events ("timestamp" DESC);
-CREATE INDEX IF NOT EXISTS idx_events_type ON system_events (event_type);
+CREATE INDEX IF NOT EXISTS idx_sensor_telemetry_node_time
+ON sensor_telemetry (node_id, "timestamp" DESC);
+
+CREATE INDEX IF NOT EXISTS idx_system_events_node_time
+ON system_events (node_id, "timestamp" DESC);
+
+CREATE INDEX IF NOT EXISTS idx_system_events_event_type
+ON system_events (event_type);

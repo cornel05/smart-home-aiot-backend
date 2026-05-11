@@ -7,7 +7,7 @@ async function sendCommand(device, action) {
   await axios.post(`${API_BASE}/api/devices/${device}/command`, { action });
 }
 
-export default function Controls({ gasThreshold, tempThreshold, onThresholdChange }) {
+export default function Controls({ tempThreshold, onThresholdChange }) {
   const [fanOn, setFanOn] = useState(false);
   const [alarmReset, setAlarmReset] = useState(false);
 
@@ -24,14 +24,21 @@ export default function Controls({ gasThreshold, tempThreshold, onThresholdChang
   }
 
   return (
-    <div className="controls">
-      <h3>Controls</h3>
+    <section className="controls">
+      <div className="controls__header">
+        <div>
+          <span className="eyebrow">Device commands</span>
+          <h3>Home response controls</h3>
+        </div>
+        <small>Commands post to local gateway</small>
+      </div>
       <div className="controls-row">
         <button
-          className={`ctrl-btn ${fanOn ? "ctrl-btn--active" : ""}`}
+          className={`ctrl-btn ctrl-btn--fan ${fanOn ? "ctrl-btn--active" : ""}`}
           onClick={toggleFan}
         >
-          Fan {fanOn ? "ON" : "OFF"}
+          <span>Fan</span>
+          <strong>{fanOn ? "On" : "Off"}</strong>
         </button>
         <button className="ctrl-btn ctrl-btn--danger" onClick={resetAlarm}>
           {alarmReset ? "Alarm Reset" : "Reset Alarm"}
@@ -39,27 +46,21 @@ export default function Controls({ gasThreshold, tempThreshold, onThresholdChang
       </div>
       <div className="threshold-row">
         <label>
-          Temp threshold (°C): <strong>{tempThreshold}</strong>
-          <input
-            type="range"
-            min={20}
-            max={40}
-            value={tempThreshold}
-            onChange={(e) => onThresholdChange("temp", Number(e.target.value))}
-          />
-        </label>
-        <label>
-          Gas threshold (ppm): <strong>{gasThreshold}</strong>
-          <input
-            type="range"
-            min={100}
-            max={600}
-            step={10}
-            value={gasThreshold}
-            onChange={(e) => onThresholdChange("gas", Number(e.target.value))}
-          />
+          <span>Temp threshold</span>
+          <strong>{tempThreshold}°C</strong>
+          <div className="range-wrap">
+            <small>20</small>
+            <input
+              type="range"
+              min={20}
+              max={40}
+              value={tempThreshold}
+              onChange={(e) => onThresholdChange("temp", Number(e.target.value))}
+            />
+            <small>40</small>
+          </div>
         </label>
       </div>
-    </div>
+    </section>
   );
 }

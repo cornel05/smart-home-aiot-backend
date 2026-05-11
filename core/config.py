@@ -9,11 +9,15 @@ class Settings(BaseSettings):
     MQTT_PORT: int = 1883
     MQTT_USER: str = ""
     MQTT_PASS: str = ""
-    MQTT_TOPIC_SENSOR: str = "smarthome/sensors"
+    AIO_USERNAME: str = "your_username"
+    MQTT_TOPIC_TEMP: str = "smarthome.temperature"
+    MQTT_TOPIC_HUM: str = "smarthome.humidity"
+    MQTT_TOPIC_LIGHT: str = "smarthome.light"
+    MQTT_TOPIC_IR: str = "smarthome.ir-motion"
     MQTT_TOPIC_CMD: str = "smarthome/commands"
     NODE_ID: int = 1
-    GAS_ALERT_THRESHOLD: float = 300.0
     TEMP_FAN_THRESHOLD: float = 26.0
+    LIGHT_ON_THRESHOLD: float = 200.0
 
 
 settings = Settings()

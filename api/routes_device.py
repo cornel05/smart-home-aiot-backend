@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from core.config import settings
 from database.session import get_db
 from database.models import SystemEvent
 from mqtt.publisher import publish_command
@@ -12,6 +13,7 @@ router = APIRouter(prefix="/devices", tags=["devices"])
 
 class CommandRequest(BaseModel):
     action: str
+    node_id: int | None = None
     value: float | None = None
 
 
@@ -22,10 +24,11 @@ async def send_command(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     publish_command(device_id, body.action, body.value)
+    node_id = body.node_id or settings.NODE_ID
 
     event = SystemEvent(
         timestamp=datetime.utcnow(),
-        node_id=None,
+        node_id=node_id,
         event_type=f"{device_id}_{body.action}",
         trigger_source="manual",
         target_device=device_id,
@@ -34,7 +37,7 @@ async def send_command(
     db.add(event)
     await db.commit()
 
-    return {"status": "ok", "device": device_id, "action": body.action}
+    return {"status": "ok", "device": device_id, "action": body.action, "node_id": node_id}
 
 
 @router.get("/events")
@@ -51,6 +54,7 @@ async def get_events(
         {
             "event_id": r.event_id,
             "timestamp": r.timestamp,
+            "node_id": r.node_id,
             "event_type": r.event_type,
             "trigger_source": r.trigger_source,
             "target_device": r.target_device,
