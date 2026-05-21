@@ -1,16 +1,16 @@
 # Graph Report - DADN  (2026-05-21)
 
 ## Corpus Check
-- 54 files · ~20,489 words
+- 54 files · ~20,969 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1018 nodes · 1805 edges · 91 communities (71 shown, 20 thin omitted)
+- 1038 nodes · 1838 edges · 89 communities (72 shown, 17 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 70 edges (avg confidence: 0.74)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `dcbf9fe3`
+- Built from commit: `68b70134`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -90,8 +90,6 @@
 - [[_COMMUNITY_Community 84|Community 84]]
 - [[_COMMUNITY_Community 85|Community 85]]
 - [[_COMMUNITY_Community 86|Community 86]]
-- [[_COMMUNITY_Community 87|Community 87]]
-- [[_COMMUNITY_Community 88|Community 88]]
 - [[_COMMUNITY_Community 90|Community 90]]
 - [[_COMMUNITY_Community 91|Community 91]]
 
@@ -114,16 +112,16 @@
   api/routes_device.py → database/models.py
 - `send_command()` --calls--> `SystemEvent`  [INFERRED]
   api/routes_device.py → database/models.py
-- `db_session()` --calls--> `NodeMetadata`  [INFERRED]
+- `TestManualOverrideFanOn` --uses--> `Base`  [INFERRED]
   tests/test_integration_manual_override.py → database/models.py
-- `_persist()` --calls--> `SensorTelemetry`  [INFERRED]
-  mqtt/subscriber.py → database/models.py
+- `TestManualOverrideFanOn` --uses--> `NodeMetadata`  [INFERRED]
+  tests/test_integration_manual_override.py → database/models.py
 
-## Communities (91 total, 20 thin omitted)
+## Communities (89 total, 17 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.10
-Nodes (31): Input(), Separator(), Sidebar(), SidebarContent(), SidebarContext, SidebarContextProps, SidebarFooter(), SidebarGroup() (+23 more)
+Cohesion: 0.09
+Nodes (35): Input(), Separator(), Sidebar(), SidebarContent(), SidebarContext, SidebarContextProps, SidebarFooter(), SidebarGroup() (+27 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.30
@@ -134,20 +132,20 @@ Cohesion: 0.10
 Nodes (23): App(), router, Layout(), ImageWithFallback(), ActivityLogs(), CHART_DATA, getTypeStyles(), LOG_DATA (+15 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.06
-Nodes (37): 1 — Infrastructure (DB + MQTT broker), 1. Start infra, 2 — Environment, 2. Start backend, 3 — Backend, 3. Start gateway (separate terminal), 4 — Gateway, 4. Start frontend (+29 more)
+Cohesion: 0.18
+Nodes (14): Architecture, code:block1 (YoloBit (serial) ──► Gateway (Python) ──► MQTT Broker (Mosqu), code:python (I2C_SCL_PIN = 19), code:python (I2C_SCL_PIN = 20), code:python (I2C_SCL_PIN = 21), code:bash (# Full suite (no DB or broker required — SQLite in-memory)), code:block25 (.), code:env (ACTUATOR_PIN_MAP='{"fan":10,"light":13}') (+6 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.14
-Nodes (14): bh1750_thread(), BoardSerial, dht11_thread(), main(), make_client(), mq2_thread(), Laptop-based IoT gateway. Simulates the report-defined serial frame and publishe, Read serial frames from *port*, publish valid ones, silently discard garbage. (+6 more)
+Cohesion: 0.05
+Nodes (37): bh1750_thread(), BoardSerial, command_subscriber_thread(), dht11_thread(), format_serial_frame(), handle_command(), main(), make_client() (+29 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.07
 Nodes (24): begin, btn, element, end, getCellValue(), header, helpCheck, line_height (+16 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.06
-Nodes (24): CommandRequest, get_events(), send_command(), BaseModel, adafruit_feed_topic(), configured_feed_topic(), get_client(), publish_command() (+16 more)
+Cohesion: 0.10
+Nodes (14): evaluate(), Evaluate sensor payload against rules. Returns list of triggered events., node_id absent in payload → falls back to settings.NODE_ID (1)., ir > 0 → ir_motion event returned (no MQTT publish_command for IR)., temp > 26.0 (TEMP_FAN_THRESHOLD) → fan_activated event returned., temp > threshold → publish_command('fan', 'on', value=temp) called., temp == 26.0 is NOT > threshold → no fan event (rule uses strict >)., light_intensity < 200.0 → light_activated event returned. (+6 more)
 
 ### Community 7 - "Community 7"
 Cohesion: 0.10
@@ -158,8 +156,8 @@ Cohesion: 0.20
 Nodes (19): Command(), CommandDialog(), CommandEmpty(), CommandGroup(), CommandInput(), CommandItem(), CommandList(), CommandSeparator() (+11 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.18
-Nodes (14): _make_pty(), Return (master_fd, slave_path). Caller owns both fds., Start serial_read_thread; close master after *delay* seconds to cause EOF., Return (master_fd, slave_path). Caller owns both fds., Start serial_read_thread; close master after *delay* seconds to cause EOF., Return (master_fd, slave_path). Caller owns both fds., Return (master_fd, slave_path). Caller owns both fds., Start serial_read_thread; close master after *delay* seconds to cause EOF. (+6 more)
+Cohesion: 0.07
+Nodes (33): build_board_command(), _make_pty(), Tests for gateway serial port reading: - parse_serial_frame unit tests (pure, no, Return (master_fd, slave_path). Caller owns both fds., Start serial_read_thread; close master after *delay* seconds to cause EOF., Return (master_fd, slave_path). Caller owns both fds., Start serial_read_thread; close master after *delay* seconds to cause EOF., Write a valid frame in two chunks; readline should reassemble. (+25 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.21
@@ -178,20 +176,20 @@ Cohesion: 0.22
 Nodes (15): DropdownMenu(), DropdownMenuCheckboxItem(), DropdownMenuContent(), DropdownMenuGroup(), DropdownMenuItem(), DropdownMenuLabel(), DropdownMenuPortal(), DropdownMenuRadioGroup() (+7 more)
 
 ### Community 14 - "Community 14"
-Cohesion: 0.16
-Nodes (9): SensorTelemetry, _make_sensor_row(), GET /api/sensors/latest → one merged snapshot with all required keys., temperature=32.5 (>30°C) and light=150.0 (<200 Lux) stored correctly., limit=1 query param — route accepts it without error., limit > 100 violates le=100 constraint → 422., minutes > 1440 violates le=1440 → 422., TestGetSensorsHistory (+1 more)
+Cohesion: 0.15
+Nodes (8): _make_sensor_row(), GET /api/sensors/latest → one merged snapshot with all required keys., temperature=32.5 (>30°C) and light=150.0 (<200 Lux) stored correctly., limit=1 query param — route accepts it without error., limit > 100 violates le=100 constraint → 422., minutes > 1440 violates le=1440 → 422., TestGetSensorsHistory, TestGetSensorsLatest
 
 ### Community 15 - "Community 15"
 Cohesion: 0.27
 Nodes (12): FormControl(), FormDescription(), FormField(), FormFieldContext, FormFieldContextValue, FormItem(), FormItemContext, FormItemContextValue (+4 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.21
-Nodes (9): Base, NodeMetadata, SystemEvent, DeclarativeBase, Backend publishes exactly one MQTT command with correct device/action., Manual override bypasses automatic rule evaluation entirely., Full integration: user presses 'Turn Fan ON' on the Dashboard., Frontend POST hits correct endpoint; response matches expected shape. (+1 more)
+Cohesion: 0.25
+Nodes (7): Base, NodeMetadata, SensorTelemetry, SystemEvent, DeclarativeBase, GET /api/devices/events → list of event dicts., TestGetDeviceEvents
 
 ### Community 17 - "Community 17"
-Cohesion: 0.17
-Nodes (16): Avatar(), AvatarFallback(), AvatarImage(), Card(), CardAction(), CardContent(), CardDescription(), CardFooter() (+8 more)
+Cohesion: 0.11
+Nodes (21): Avatar(), AvatarFallback(), AvatarImage(), Card(), CardAction(), CardContent(), CardDescription(), CardFooter() (+13 more)
 
 ### Community 19 - "Community 19"
 Cohesion: 0.15
@@ -226,8 +224,8 @@ Cohesion: 0.35
 Nodes (9): NavigationMenu(), NavigationMenuContent(), NavigationMenuIndicator(), NavigationMenuItem(), NavigationMenuLink(), NavigationMenuList(), NavigationMenuTrigger(), navigationMenuTriggerStyle (+1 more)
 
 ### Community 27 - "Community 27"
-Cohesion: 0.16
-Nodes (10): get_history(), get_latest(), client_and_mqtt(), db_session(), Integration test: Manual Override flow (Module 3).  Flow under test:   User clic, SystemEvent row persisted; trigger_source='manual', event_type='fan_on'., Single POST → exactly one DB row; no duplicate logging., SQLite in-memory DB with the real SQLAlchemy schema.     Seeds node_metadata.nod (+2 more)
+Cohesion: 0.12
+Nodes (12): client_and_mqtt(), db_session(), Integration test: Manual Override flow (Module 3).  Flow under test:   User clic, Backend publishes exactly one MQTT command with correct device/action., SystemEvent row persisted; trigger_source='manual', event_type='fan_on'., Manual override bypasses automatic rule evaluation entirely., Single POST → exactly one DB row; no duplicate logging., SQLite in-memory DB with the real SQLAlchemy schema.     Seeds node_metadata.nod (+4 more)
 
 ### Community 28 - "Community 28"
 Cohesion: 0.36
@@ -242,8 +240,8 @@ Cohesion: 0.39
 Nodes (7): Breadcrumb(), BreadcrumbEllipsis(), BreadcrumbItem(), BreadcrumbLink(), BreadcrumbList(), BreadcrumbPage(), BreadcrumbSeparator()
 
 ### Community 31 - "Community 31"
-Cohesion: 0.29
-Nodes (13): Carousel(), CarouselApi, CarouselContent(), CarouselContext, CarouselContextProps, CarouselItem(), CarouselNext(), CarouselOptions (+5 more)
+Cohesion: 0.18
+Nodes (13): 1 — Infrastructure (DB + MQTT broker), 2 — Environment, 3 — Backend, 4 — Backend, 6 — Frontend, code:bash (uv sync), code:bash (sudo usermod -aG dialout "$USER"), code:bash (cd frontend) (+5 more)
 
 ### Community 32 - "Community 32"
 Cohesion: 0.25
@@ -254,8 +252,8 @@ Cohesion: 0.36
 Nodes (4): _on_message(), _payload_from_feed(), _persist(), _validate_payload()
 
 ### Community 34 - "Community 34"
-Cohesion: 0.05
-Nodes (43): AlertDialog(), AlertDialogAction(), AlertDialogCancel(), AlertDialogContent(), AlertDialogDescription(), AlertDialogFooter(), AlertDialogHeader(), AlertDialogOverlay() (+35 more)
+Cohesion: 0.07
+Nodes (42): AlertDialog(), AlertDialogAction(), AlertDialogCancel(), AlertDialogContent(), AlertDialogDescription(), AlertDialogFooter(), AlertDialogHeader(), AlertDialogOverlay() (+34 more)
 
 ### Community 36 - "Community 36"
 Cohesion: 0.29
@@ -270,8 +268,8 @@ Cohesion: 0.29
 Nodes (7): 15.1 End-to-End Latency Assessment, 15.2 System Uptime Assessment, 15.3 Compliance Summary, 15. Performance and Requirements Verification, Reliability Mechanisms, Result, Result
 
 ### Community 39 - "Community 39"
-Cohesion: 0.13
-Nodes (15): command_subscriber_thread(), format_serial_frame(), Subscribe to smarthome/commands and log actuator commands from the backend., Simulate one strict serial frame every 5 seconds., Subscribe to smarthome/commands and log actuator commands from the backend., Subscribe to smarthome/commands and log actuator commands from the backend., Subscribe to smarthome/commands and log actuator commands from the backend., Subscribe to smarthome/commands and log actuator commands from the backend. (+7 more)
+Cohesion: 0.22
+Nodes (11): 5 — Frontend, API Reference, code:text (I2C_SCAN:[56, ...]), code:python (import task_actuators), code:text ([ACTUATOR] fan=1), code:bash (# T1 — infra), code:bash (curl -X POST http://localhost:8000/api/devices/fan/command \), Devices (+3 more)
 
 ### Community 40 - "Community 40"
 Cohesion: 0.09
@@ -282,8 +280,8 @@ Cohesion: 0.60
 Nodes (4): Alert(), AlertDescription(), AlertTitle(), alertVariants
 
 ### Community 44 - "Community 44"
-Cohesion: 0.23
-Nodes (10): build_board_command(), Tests for gateway serial port reading: - parse_serial_frame unit tests (pure, no, test_build_board_command_off(), test_build_board_command_on(), test_build_board_command_rejects_protocol_injection_device(), test_build_board_command_rejects_undocumented_action_alias(), test_build_board_command_rejects_unknown_action(), test_build_board_command_uses_action_when_value_is_metadata() (+2 more)
+Cohesion: 0.31
+Nodes (9): 3 — Yolo:Bit Firmware Upload With Pymakr, 4 — Gateway, code:text (TEMP:25.3,HUM:61.5,LIGHT:430,IR:0), code:text (CMD:{device},{state}), code:text (firmware/yolobit/yolobit.code-workspace), code:text (main.py), Connect and upload, Install the correct Pymakr extension (+1 more)
 
 ### Community 45 - "Community 45"
 Cohesion: 0.33
@@ -292,6 +290,14 @@ Nodes (5): Button, Design system guidelines, General guidelines, Usage, Variants
 ### Community 46 - "Community 46"
 Cohesion: 0.53
 Nodes (4): Accordion(), AccordionContent(), AccordionItem(), AccordionTrigger()
+
+### Community 47 - "Community 47"
+Cohesion: 0.44
+Nodes (5): ToggleGroup(), ToggleGroupContext, ToggleGroupItem(), Toggle(), toggleVariants
+
+### Community 48 - "Community 48"
+Cohesion: 0.33
+Nodes (5): 1. Start infra, 2. Start backend, 3. Start gateway (separate terminal), 4. Start frontend, smart-home-aiot-backend
 
 ### Community 49 - "Community 49"
 Cohesion: 0.40
@@ -330,16 +336,20 @@ Cohesion: 0.09
 Nodes (22): permissions, allow, skillOverrides, caveman-commit, caveman-compress, caveman-help, caveman-review, clean_instruction (+14 more)
 
 ### Community 77 - "Community 77"
-Cohesion: 0.23
-Nodes (6): handle_command(), Parse actuator command payload; future YoloBit adapter should dispatch here., Parse actuator command payload; future YoloBit adapter should dispatch here., Parse actuator command payload; future YoloBit adapter should dispatch here., write_board_command(), TestCommandHandling
+Cohesion: 0.53
+Nodes (4): Popover(), PopoverAnchor(), PopoverContent(), PopoverTrigger()
 
 ### Community 78 - "Community 78"
 Cohesion: 0.53
 Nodes (4): InputOTP(), InputOTPGroup(), InputOTPSeparator(), InputOTPSlot()
 
 ### Community 79 - "Community 79"
-Cohesion: 0.33
-Nodes (9): SelectContent(), SelectGroup(), SelectItem(), SelectLabel(), SelectScrollDownButton(), SelectScrollUpButton(), SelectSeparator(), SelectTrigger() (+1 more)
+Cohesion: 0.07
+Nodes (24): extract(), LSTMModel, CommandRequest, get_events(), send_command(), get_history(), get_latest(), BaseModel (+16 more)
+
+### Community 80 - "Community 80"
+Cohesion: 0.40
+Nodes (5): 5 — Gateway, code:bash (python gateway/gateway.py), code:bash (python gateway/gateway.py --port /dev/ttyUSB0), code:block19 (TEMP:25.3,HUM:61.5,LIGHT:430.2,IR:0), code:block20 (CMD:{device},{state})
 
 ### Community 81 - "Community 81"
 Cohesion: 0.53
@@ -349,33 +359,25 @@ Nodes (4): Tabs(), TabsContent(), TabsList(), TabsTrigger()
 Cohesion: 0.67
 Nodes (3): SMART HOME AUTOMATION WITH AIoT, Students, Week 2 Report
 
-### Community 87 - "Community 87"
-Cohesion: 0.18
-Nodes (9): Write a valid frame in two chunks; readline should reassemble., Write a valid frame in two chunks; readline should reassemble., Write a valid frame in two chunks; readline should reassemble., Thread exits without exception when port does not exist., Thread exits without exception when port does not exist., Write a valid frame in two chunks; readline should reassemble., Write a valid frame in two chunks; readline should reassemble., Thread exits without exception when port does not exist. (+1 more)
-
-### Community 88 - "Community 88"
-Cohesion: 0.53
-Nodes (4): Tooltip(), TooltipContent(), TooltipProvider(), TooltipTrigger()
-
 ## Knowledge Gaps
-- **191 isolated node(s):** `PreToolUse`, `allow`, `caveman-commit`, `caveman-compress`, `caveman-help` (+186 more)
+- **194 isolated node(s):** `PreToolUse`, `allow`, `caveman-commit`, `caveman-compress`, `caveman-help` (+189 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **20 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **17 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `cn()` connect `Community 17` to `Community 0`, `Community 1`, `Community 8`, `Community 10`, `Community 11`, `Community 13`, `Community 15`, `Community 22`, `Community 23`, `Community 26`, `Community 28`, `Community 30`, `Community 31`, `Community 34`, `Community 43`, `Community 46`, `Community 78`, `Community 79`, `Community 81`, `Community 88`?**
-  _High betweenness centrality (0.223) - this node is a cross-community bridge._
-- **Why does `Select()` connect `Community 27` to `Community 80`, `Community 6`, `Community 79`?**
-  _High betweenness centrality (0.169) - this node is a cross-community bridge._
+- **Why does `cn()` connect `Community 17` to `Community 0`, `Community 1`, `Community 8`, `Community 10`, `Community 11`, `Community 13`, `Community 15`, `Community 22`, `Community 23`, `Community 26`, `Community 28`, `Community 30`, `Community 34`, `Community 43`, `Community 46`, `Community 47`, `Community 77`, `Community 78`, `Community 79`, `Community 81`?**
+  _High betweenness centrality (0.204) - this node is a cross-community bridge._
+- **Why does `Select()` connect `Community 79` to `Community 27`?**
+  _High betweenness centrality (0.151) - this node is a cross-community bridge._
+- **Why does `publish_command()` connect `Community 79` to `Community 6`?**
+  _High betweenness centrality (0.122) - this node is a cross-community bridge._
 - **Are the 16 inferred relationships involving `evaluate()` (e.g. with `_on_message()` and `publish_command()`) actually correct?**
   _`evaluate()` has 16 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 12 inferred relationships involving `parse_serial_frame()` (e.g. with `test_serial_frame_format_is_strict()` and `.test_valid_frame_returns_correct_dict()`) actually correct?**
   _`parse_serial_frame()` has 12 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `PreToolUse`, `allow`, `caveman-commit` to the rest of the system?**
-  _260 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _263 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.1024390243902439 - nodes in this community are weakly interconnected._
-- **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.0975609756097561 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09435707678075855 - nodes in this community are weakly interconnected._
