@@ -16,25 +16,36 @@ Serial port mode (real hardware / virtual pty):
   python gateway/gateway.py --port /dev/ttyUSB0
 """
 import argparse
+import json
 import logging
 import os
 import random
 import re
+import sys
 import threading
 import time
+from pathlib import Path
 
 import paho.mqtt.client as mqtt
 
-MQTT_HOST = "localhost"
-MQTT_PORT = 1883
-MQTT_USER = ""
-MQTT_PASS = ""
-AIO_USERNAME = "your_username"
-TOPIC_TEMP = f"{AIO_USERNAME}/feeds/smarthome.temperature"
-TOPIC_HUM = f"{AIO_USERNAME}/feeds/smarthome.humidity"
-TOPIC_LIGHT = f"{AIO_USERNAME}/feeds/smarthome.light"
-TOPIC_IR = f"{AIO_USERNAME}/feeds/smarthome.ir-motion"
-TOPIC_CMD = "smarthome/commands"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from core.config import settings
+
+MQTT_HOST = settings.MQTT_HOST
+MQTT_PORT = settings.MQTT_PORT
+MQTT_USER = settings.MQTT_USER
+MQTT_PASS = settings.MQTT_PASS
+TOPIC_TEMP = f"{settings.AIO_USERNAME}/feeds/{settings.MQTT_TOPIC_TEMP}"
+TOPIC_HUM = f"{settings.AIO_USERNAME}/feeds/{settings.MQTT_TOPIC_HUM}"
+TOPIC_LIGHT = f"{settings.AIO_USERNAME}/feeds/{settings.MQTT_TOPIC_LIGHT}"
+TOPIC_IR = f"{settings.AIO_USERNAME}/feeds/{settings.MQTT_TOPIC_IR}"
+TOPIC_CMD = settings.MQTT_TOPIC_CMD
+BOARD_DEVICE_IDS = set(settings.ACTUATOR_PIN_MAP)
+BOARD_ON_ACTIONS = {"on"}
+BOARD_OFF_ACTIONS = {"off"}
 SERIAL_FRAME_RE = re.compile(
     r"^TEMP:(?P<temperature>-?\d+(?:\.\d+)?),"
     r"HUM:(?P<humidity>-?\d+(?:\.\d+)?),"
@@ -55,6 +66,48 @@ def parse_serial_frame(frame: str) -> dict[str, float]:
     if not match:
         raise ValueError("Serial frame must match TEMP:{},HUM:{},LIGHT:{},IR:{}")
     return {key: float(value) for key, value in match.groupdict().items()}
+
+
+def build_board_command(device: str, action: str, value: int | None = None) -> str:
+    if device not in BOARD_DEVICE_IDS:
+        raise ValueError(f"Unsupported board device: {device}")
+
+    normalized_action = action.lower()
+    if normalized_action in BOARD_ON_ACTIONS:
+        state = 1
+    elif normalized_action in BOARD_OFF_ACTIONS:
+        state = 0
+    else:
+        raise ValueError(f"Unsupported board action: {action}")
+
+    return f"CMD:{device},{state}\n"
+
+
+class BoardSerial:
+    def __init__(self, port: str):
+        self.port = port
+        self._stream = open(port, "r+b", buffering=0)  # noqa: SIM115 - closed by close()
+        self._write_lock = threading.Lock()
+
+    def readline(self) -> bytes:
+        return self._stream.readline()
+
+    def write(self, data: bytes) -> None:
+        with self._write_lock:
+            self._stream.write(data)
+            try:
+                self._stream.flush()
+            except AttributeError:
+                pass
+
+    def close(self) -> None:
+        self._stream.close()
+
+
+def write_board_command(command: str, board_writer=None) -> None:
+    if board_writer is None:
+        raise RuntimeError("board serial write path is not configured")
+    board_writer.write(command.encode("utf-8"))
 
 
 def make_client() -> mqtt.Client:
@@ -97,14 +150,18 @@ def telemetry_thread(client: mqtt.Client) -> None:
         time.sleep(5)
 
 
-def serial_read_thread(port: str, client: mqtt.Client) -> None:
+def serial_read_thread(port: str, client: mqtt.Client, board_serial: BoardSerial | None = None) -> None:
     """Read serial frames from *port*, publish valid ones, silently discard garbage."""
     logger.info("Opening serial port %s", port)
-    try:
-        ser = open(port, "rb", buffering=0)  # noqa: SIM115 — manual close below
-    except OSError as exc:
-        logger.error("Cannot open serial port %s: %s", port, exc)
-        return
+    owns_serial = board_serial is None
+    if board_serial is None:
+        try:
+            ser = open(port, "rb", buffering=0)  # noqa: SIM115 — manual close below
+        except OSError as exc:
+            logger.error("Cannot open serial port %s: %s", port, exc)
+            return
+    else:
+        ser = board_serial
 
     try:
         while True:
@@ -133,10 +190,41 @@ def serial_read_thread(port: str, client: mqtt.Client) -> None:
             client.publish(TOPIC_IR, str(int(values["ir"])))
             logger.info("Serial → %s", frame)
     finally:
-        ser.close()
+        if owns_serial:
+            ser.close()
 
 
-def command_subscriber_thread() -> None:
+def handle_command(raw_payload: bytes | str, board_writer=None) -> dict | None:
+    """Parse actuator command payload; future YoloBit adapter should dispatch here."""
+    try:
+        if isinstance(raw_payload, bytes):
+            raw_payload = raw_payload.decode("utf-8")
+        payload = json.loads(raw_payload)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        logger.warning("Bad command payload (discarded): %r (%s)", raw_payload, exc)
+        return None
+
+    if not isinstance(payload, dict) or "device" not in payload or "action" not in payload:
+        logger.warning("Bad command payload (discarded): %r", payload)
+        return None
+
+    command = {
+        "device": str(payload["device"]),
+        "action": str(payload["action"]),
+    }
+    if "value" in payload:
+        command["value"] = payload["value"]
+
+    logger.info("CMD ← %s", command)
+    if board_writer is not None:
+        board_command = build_board_command(
+            command["device"], command["action"], command.get("value")
+        )
+        write_board_command(board_command, board_writer)
+    return command
+
+
+def command_subscriber_thread(board_writer=None) -> None:
     """Subscribe to smarthome/commands and log actuator commands from the backend."""
 
     def on_connect(c, userdata, flags, reason_code, properties):
@@ -147,7 +235,10 @@ def command_subscriber_thread() -> None:
             logger.error("Command subscriber connect failed: %s", reason_code)
 
     def on_message(c, userdata, msg):
-        logger.info("CMD ← %s", msg.payload.decode())
+        try:
+            handle_command(msg.payload, board_writer=board_writer)
+        except Exception as exc:
+            logger.error("Board command write failed: %s", exc)
 
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     if MQTT_USER:
@@ -170,9 +261,18 @@ def main():
     client = make_client()
     time.sleep(1)
 
+    board_serial = None
     if args.port:
+        try:
+            board_serial = BoardSerial(args.port)
+        except OSError as exc:
+            logger.error("Cannot open serial port %s: %s", args.port, exc)
+            return
         data_thread = threading.Thread(
-            target=serial_read_thread, args=(args.port, client), name="SerialRead", daemon=True
+            target=serial_read_thread,
+            args=(args.port, client, board_serial),
+            name="SerialRead",
+            daemon=True,
         )
         logger.info("Serial mode — reading from %s", args.port)
     else:
@@ -183,7 +283,12 @@ def main():
 
     threads = [
         data_thread,
-        threading.Thread(target=command_subscriber_thread, name="CmdSub", daemon=True),
+        threading.Thread(
+            target=command_subscriber_thread,
+            args=(board_serial,),
+            name="CmdSub",
+            daemon=True,
+        ),
     ]
     for t in threads:
         t.start()

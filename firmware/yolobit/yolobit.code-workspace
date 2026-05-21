@@ -1,0 +1,26 @@
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "YoloHome YoloBit Firmware"
+    }
+  ],
+  "settings": {
+    "pymakr.autoConnect": false,
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/*.pyc": true
+    },
+    "search.exclude": {
+      "**/__pycache__": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "pycom.pymakr"
+    ],
+    "unwantedRecommendations": [
+      "pycom.pymakr-preview"
+    ]
+  }
+}

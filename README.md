@@ -89,7 +89,7 @@ Create `.env` in the project root (all values are optional — defaults work wit
 DB_URL=postgresql+asyncpg://smarthome:smarthome@localhost:5432/smarthome
 MQTT_HOST=localhost
 MQTT_PORT=1883
-AIO_USERNAME=your_username   # must match gateway AIO_USERNAME constant
+AIO_USERNAME=your_username   # shared by backend and gateway topic builders
 NODE_ID=1
 TEMP_FAN_THRESHOLD=26.0
 LIGHT_ON_THRESHOLD=200.0
@@ -133,6 +133,16 @@ Serial frame format the hardware must emit:
 TEMP:25.3,HUM:61.5,LIGHT:430.2,IR:0
 ```
 
+When `--port` is set, gateway commands are written back to the same YoloBit serial
+path as board-side frames:
+
+```
+CMD:{device},{state}
+```
+
+Supported provisional actuator devices come from `ACTUATOR_PIN_MAP` (`fan` -> pin 10,
+`light` -> pin 13 by default). Confirm real wiring before powering actuators.
+
 ---
 
 ### 5 — Frontend
@@ -171,7 +181,7 @@ cd frontend && npm run dev
 
 | Method | Path | Query params | Description |
 |--------|------|-------------|-------------|
-| GET | `/api/sensors/latest` | `limit=10` (max 100) | Latest N readings |
+| GET | `/api/sensors/latest` | `limit=10` (max 100) | Latest merged sensor snapshot |
 | GET | `/api/sensors/history` | `minutes=60` (max 1440), `node_id=1` | Readings from last N minutes |
 
 ### Devices
@@ -181,7 +191,10 @@ cd frontend && npm run dev
 | POST | `/api/devices/{device}/command` | `{"action": "on"\|"off", "node_id": 1}` | Manual actuator command |
 | GET | `/api/devices/events` | `limit=20` | Recent system events |
 
-**Device IDs:** `fan`, `light`, `alarm`
+**YoloBit device IDs:** `fan`, `light`
+
+`alarm` may appear in backend events, but it is not mapped to the current YoloBit
+actuator firmware.
 
 **Example — turn fan on:**
 
@@ -254,6 +267,13 @@ All settings live in `core/config.py` via `pydantic-settings`. Override with env
 | `MQTT_HOST` | `localhost` | Broker host |
 | `MQTT_PORT` | `1883` | Broker port |
 | `AIO_USERNAME` | `your_username` | Adafruit IO username (feed topic prefix) |
+| `ACTUATOR_PIN_MAP` | `{"fan": 10, "light": 13}` | Provisional YoloBit actuator pin map used to validate board command devices |
 | `NODE_ID` | `1` | Default sensor node |
 | `TEMP_FAN_THRESHOLD` | `26.0` | °C above which fan activates automatically |
 | `LIGHT_ON_THRESHOLD` | `200.0` | Lux below which light activates automatically |
+
+For `.env`, dictionary settings must use JSON:
+
+```env
+ACTUATOR_PIN_MAP='{"fan":10,"light":13}'
+```

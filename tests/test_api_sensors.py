@@ -21,8 +21,8 @@ def _make_sensor_row(temperature: float, light_intensity: float) -> SensorTeleme
 
 
 class TestGetSensorsLatest:
-    async def test_returns_list_with_correct_shape(self, client, mock_db):
-        """GET /api/sensors/latest → list of sensor dicts with all required keys."""
+    async def test_returns_merged_latest_snapshot_with_correct_shape(self, client, mock_db):
+        """GET /api/sensors/latest → one merged snapshot with all required keys."""
         rows = [
             _make_sensor_row(temperature=32.5, light_intensity=150.0),
             _make_sensor_row(temperature=25.0, light_intensity=500.0),
@@ -35,7 +35,7 @@ class TestGetSensorsLatest:
 
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 2
+        assert len(data) == 1
         assert set(data[0].keys()) == {"timestamp", "node_id", "temperature", "humidity", "light_intensity"}
 
     async def test_high_temp_row_values_preserved(self, client, mock_db):

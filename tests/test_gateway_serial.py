@@ -15,7 +15,59 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from gateway.gateway import parse_serial_frame, serial_read_thread
+from core.config import settings
+from gateway.gateway import (
+    TOPIC_CMD,
+    TOPIC_HUM,
+    TOPIC_IR,
+    TOPIC_LIGHT,
+    TOPIC_TEMP,
+    BOARD_DEVICE_IDS,
+    BoardSerial,
+    handle_command,
+    parse_serial_frame,
+    serial_read_thread,
+    write_board_command,
+)
+
+
+def test_build_board_command_on():
+    from gateway.gateway import build_board_command
+
+    assert build_board_command("fan", "on") == "CMD:fan,1\n"
+
+
+def test_build_board_command_off():
+    from gateway.gateway import build_board_command
+
+    assert build_board_command("light", "off") == "CMD:light,0\n"
+
+
+def test_build_board_command_uses_action_when_value_is_metadata():
+    from gateway.gateway import build_board_command
+
+    assert build_board_command("fan", "off", value=1) == "CMD:fan,0\n"
+
+
+def test_build_board_command_rejects_unknown_action():
+    from gateway.gateway import build_board_command
+
+    with pytest.raises(ValueError, match="Unsupported board action"):
+        build_board_command("fan", "onn")
+
+
+def test_build_board_command_rejects_undocumented_action_alias():
+    from gateway.gateway import build_board_command
+
+    with pytest.raises(ValueError, match="Unsupported board action"):
+        build_board_command("fan", "open")
+
+
+def test_build_board_command_rejects_protocol_injection_device():
+    from gateway.gateway import build_board_command
+
+    with pytest.raises(ValueError, match="Unsupported board device"):
+        build_board_command("fan\nCMD:light", "on")
 
 
 # ---------------------------------------------------------------------------
@@ -73,6 +125,54 @@ class TestParseSerialFrame:
     def test_plain_text_raises(self):
         with pytest.raises(ValueError):
             parse_serial_frame("hello world this is not a sensor")
+
+
+class TestGatewayConfig:
+    def test_topics_come_from_shared_settings(self):
+        prefix = f"{settings.AIO_USERNAME}/feeds"
+
+        assert TOPIC_TEMP == f"{prefix}/{settings.MQTT_TOPIC_TEMP}"
+        assert TOPIC_HUM == f"{prefix}/{settings.MQTT_TOPIC_HUM}"
+        assert TOPIC_LIGHT == f"{prefix}/{settings.MQTT_TOPIC_LIGHT}"
+        assert TOPIC_IR == f"{prefix}/{settings.MQTT_TOPIC_IR}"
+        assert TOPIC_CMD == settings.MQTT_TOPIC_CMD
+
+    def test_board_device_ids_come_from_actuator_pin_map(self):
+        assert BOARD_DEVICE_IDS == set(settings.ACTUATOR_PIN_MAP)
+
+
+class TestCommandHandling:
+    def test_valid_command_payload_returns_command_dict(self):
+        result = handle_command(b'{"device":"fan","action":"on","value":32.0}')
+
+        assert result == {"device": "fan", "action": "on", "value": 32.0}
+
+    def test_invalid_command_payload_returns_none(self):
+        assert handle_command(b"not json") is None
+
+    def test_write_board_command_without_port_raises(self):
+        with pytest.raises(RuntimeError, match="board serial write path"):
+            write_board_command("CMD:fan,1\n")
+
+    def test_handle_command_writes_board_command_when_writer_configured(self):
+        board_writer = MagicMock()
+
+        result = handle_command(b'{"device":"fan","action":"on"}', board_writer=board_writer)
+
+        assert result == {"device": "fan", "action": "on"}
+        board_writer.write.assert_called_once_with(b"CMD:fan,1\n")
+
+    def test_board_serial_reuses_one_open_stream_for_writes(self, tmp_path):
+        board_path = tmp_path / "board-serial"
+        board_path.touch()
+        writer = BoardSerial(str(board_path))
+        try:
+            write_board_command("CMD:fan,1\n", writer)
+            write_board_command("CMD:fan,0\n", writer)
+        finally:
+            writer.close()
+
+        assert board_path.read_bytes() == b"CMD:fan,1\nCMD:fan,0\n"
 
 
 # ---------------------------------------------------------------------------

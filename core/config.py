@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +21,7 @@ class Settings(BaseSettings):
     NODE_ID: int = 1
     TEMP_FAN_THRESHOLD: float = 26.0
     LIGHT_ON_THRESHOLD: float = 200.0
+    ACTUATOR_PIN_MAP: dict[str, int] = Field(default_factory=lambda: {"fan": 10, "light": 13})
 
 
 settings = Settings()
