@@ -9,94 +9,87 @@ logger = logging.getLogger(__name__)
 
 _loop: asyncio.AbstractEventLoop | None = None
 
+# Một kho lưu trữ tạm thời vì data được gửi lẻ tẻ
+_node_buffer: dict[int, dict] = {}
 
 def _on_connect(client, userdata, flags, reason_code, properties):
     if reason_code == 0:
-        for topic in _FEED_TO_FIELD:
-            client.subscribe(topic)
-        logger.info("MQTT subscriber connected to Adafruit IO feeds")
+        client.subscribe("#")
+        logger.info("MQTT subscriber connected to LOCAL broker - Lắng nghe đa kênh (#)")
     else:
         logger.error("MQTT connect failed: %s", reason_code)
 
-
-def _feed_topic(feed_key: str) -> str:
-    return f"{settings.AIO_USERNAME}/feeds/{feed_key}"
-
-
-_node_buffer: dict[int, dict] = {}
-
-_FEED_TO_FIELD = {
-    _feed_topic(settings.MQTT_TOPIC_TEMP): "temperature",
-    _feed_topic(settings.MQTT_TOPIC_HUM): "humidity",
-    _feed_topic(settings.MQTT_TOPIC_LIGHT): "light_intensity",
-    _feed_topic(settings.MQTT_TOPIC_IR): "ir",
-}
-
-
-def _payload_from_feed(topic: str, raw_value: bytes) -> dict | None:
-    field = _FEED_TO_FIELD.get(topic)
-    if field is None:
-        logger.warning("Dropping message from unexpected topic %s", topic)
-        return None
-
-    value = float(raw_value.decode())
-    return {"node_id": settings.NODE_ID, field: value}
-
-
 def _on_message(client, userdata, msg):
     try:
-        payload = _payload_from_feed(msg.topic, msg.payload)
-        if payload is None:
+        topic = msg.topic
+        raw_str = msg.payload.decode().strip()
+        logger.info(">>> Nhận: Topic [%s] | Dữ liệu: %s", topic, raw_str)
+        
+        try:
+            val = float(raw_str)
+        except ValueError:
+            return # Bỏ qua nếu không phải số
+
+        # Phân loại dữ liệu theo đuôi của Topic
+        field = None
+        if topic.endswith("temperature"): field = "temperature"
+        elif topic.endswith("humidity"): field = "humidity"
+        elif topic.endswith("light"): field = "light_intensity"
+        elif topic.endswith("ir-motion"): field = "ir"
+        
+        if not field:
             return
 
-        logger.info("Received %s: %s", msg.topic, payload)
-        events = evaluate(payload)
-
+        payload = {"node_id": settings.NODE_ID, field: val}
+        
         if _loop and not _loop.is_closed():
-            asyncio.run_coroutine_threadsafe(_persist(payload, events), _loop)
+            asyncio.run_coroutine_threadsafe(_persist(payload), _loop)
+            
     except Exception as exc:
         logger.exception("Error processing MQTT message: %s", exc)
 
-
-async def _persist(payload: dict, events: list[dict]):
+async def _persist(payload: dict):
     from database.session import AsyncSessionLocal
-    from database.models import SensorTelemetry, SystemEvent
-    from core.config import settings as cfg
+    from database.models import SensorTelemetry
 
-    node_id = payload.get("node_id", cfg.NODE_ID)
-
+    node_id = payload.get("node_id", settings.NODE_ID)
+    
+    # Khởi tạo buffer nếu chưa có
     if node_id not in _node_buffer:
         _node_buffer[node_id] = {}
-    _node_buffer[node_id].update(
-        {k: v for k, v in payload.items() if k != "node_id" and v is not None}
-    )
+        
+    # Cập nhật thông số mới vào buffer
+    for k, v in payload.items():
+        if k != "node_id":
+            _node_buffer[node_id][k] = v
+            
     buf = _node_buffer[node_id]
-
-    async with AsyncSessionLocal() as session:
-        row = SensorTelemetry(
-            timestamp=datetime.utcnow(),
-            node_id=node_id,
-            temperature=buf.get("temperature"),
-            humidity=buf.get("humidity"),
-            light_intensity=buf.get("light_intensity"),
-        )
-        if any(v is not None for v in (row.temperature, row.humidity, row.light_intensity)):
+    
+    # CHỈ LƯU VÀO DATABASE KHI GOM ĐỦ CẢ NHIỆT ĐỘ & ĐỘ ẨM
+    if "temperature" in buf and "humidity" in buf:
+        async with AsyncSessionLocal() as session:
+            row = SensorTelemetry(
+                timestamp=datetime.utcnow(),
+                node_id=node_id,
+                temperature=buf.get("temperature"),
+                humidity=buf.get("humidity"),
+                light_intensity=buf.get("light_intensity"),
+            )
             session.add(row)
-        for ev in events:
-            session.add(SystemEvent(**ev))
-        await session.commit()
-
+            await session.commit()
+            logger.info(">>> ĐÃ LƯU DATABASE: T:%.1f H:%.1f L:%s", 
+                        buf.get("temperature"), buf.get("humidity"), buf.get("light_intensity"))
+        
+        # Xóa buffer sau khi lưu để chuẩn bị gom vòng mới
+        _node_buffer[node_id] = {}
 
 def start_subscriber(loop: asyncio.AbstractEventLoop):
     global _loop
     _loop = loop
-
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     if settings.MQTT_USER:
         client.username_pw_set(settings.MQTT_USER, settings.MQTT_PASS)
-
     client.on_connect = _on_connect
     client.on_message = _on_message
-
     client.connect(settings.MQTT_HOST, settings.MQTT_PORT, keepalive=60)
     client.loop_forever()

@@ -22,7 +22,7 @@ except Exception:
 
 # If I2C scan is empty, try (19, 20), then (22, 21), then swap SDA/SCL.
 I2C_SCL_PIN = 22
-I2C_SDA_PIN = 21
+I2C_SDA_PIN = 21	
 LDR_ADC_PIN = 2
 IR_PIN = 1
 LCD_ADDR = 0x21
@@ -102,7 +102,8 @@ def poll_serial_command():
 i2c = make_i2c()
 print("I2C_SCAN:{}".format(i2c.scan()))
 
-dht = DHT20(i2c)
+# Đã khóa khởi tạo DHT20
+# dht = DHT20(i2c)
 lcd = None
 try:
     lcd = LCD1602(i2c, addr=LCD_ADDR)
@@ -123,12 +124,15 @@ if task_actuators:
 while True:
     poll_serial_command()
 
-    try:
-        temp, hum = dht.read()
-    except OSError as exc:
-        print("DHT20_ERROR:{}".format(exc))
-        temp = -99.0
-        hum = -1.0
+    # Đã khóa lệnh đọc biến dht vì cảm biến đã được rút ra
+    # try:
+    #     temp, hum = dht.read()
+    # except OSError as exc:
+    #     print("DHT20_ERROR:{}".format(exc))
+    
+    # Gán giá trị mặc định để mạch chạy tiếp
+    temp = -99.0
+    hum = -1.0
 
     light = read_light(light_adc)
     ir = read_ir(ir_pin)
